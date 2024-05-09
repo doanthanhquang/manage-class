@@ -2,7 +2,7 @@
 
 ## Project setup
 ```
-yarn install
+yarn/ npm install
 ```
 
 ### Compiles and hot-reloads for development
