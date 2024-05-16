@@ -3,10 +3,13 @@
     <div class="header">
       <h1 class="title">Manage Scores</h1>
       <div class="search-group">
-        <input type="text" class="search-input" placeholder="Search..." />
-        <button class="filter-btn">Search</button>
+        <select v-model="filter" class="search-input">
+          <option value="" selected>All</option>
+          <option :value="true">True</option>
+          <option :value="false">False</option>
+        </select>
       </div>
-      <button class="create-button">Create</button>
+      <button class="create-button" @click="isCreate = true, isView = false, isDelete = false, isEdit = false">Create</button>
     </div>
     <div class="form-container">
       <table class="form-table">
@@ -23,42 +26,85 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="item in items" :key="item.id">
-            <td>{{ item.id }}</td>
-            <td>{{ item.name }}</td>
-            <td>
-              <label class="toggle">
-                <input type="checkbox" />
-                <span class="slider"></span>
-              </label>
-            </td>
-            <td>{{ item.score_test }}</td>
-            <td>{{ item.score_exam }}</td>
-            <td>{{ item.address }}</td>
-            <td>{{ item.total_score }}</td>
-            <td>
-              <button class="action-button view-button">View</button>
-              <button class="action-button edit-button">Edit</button>
-              <button class="action-button delete-button">Delete</button>
-            </td>
-          </tr>
+          <template v-if="!filter && filter!==false">
+            <tr v-for="item in items" :key="item.id">
+              <td>{{ item.id }}</td>
+              <td>{{ item.name }}</td>
+              <td>
+                <label class="toggle">
+                  <input type="checkbox" v-model="item.status" />
+                  <span class="slider"></span>
+                </label>
+              </td>
+              <td>{{ item.score_test }}</td>
+              <td>{{ item.score_exam }}</td>
+              <td>{{ item.address }}</td>
+              <td>{{ item.total_score }}</td>
+              <td>
+                <button class="action-button view-button" @click="handleView(item)">View</button>
+                <button class="action-button edit-button" @click="handleEdit(item)">Edit</button>
+                <button class="action-button delete-button" @click="handleDelete(item)">Delete</button>
+              </td>
+            </tr>
+          </template>
+          <template v-else>
+            <tr v-for="item in items" :key="item.id">
+              <template v-if="filter == item.status">
+                <td>{{ item.id }}</td>
+                <td>{{ item.name }}</td>
+                <td>
+                  <label class="toggle">
+                    <input type="checkbox" v-model="item.status" />
+                    <span class="slider"></span>
+                  </label>
+                </td>
+                <td>{{ item.score_test }}</td>
+                <td>{{ item.score_exam }}</td>
+                <td>{{ item.address }}</td>
+                <td>{{ item.total_score }}</td>
+                <td>
+                  <button class="action-button view-button" @click="handleView(item)">View</button>
+                  <button class="action-button edit-button" @click="handleEdit(item)">Edit</button>
+                  <button class="action-button delete-button" @click="handleDelete(item)">Delete</button>
+                </td>
+              </template>
+            </tr>
+          </template>
         </tbody>
       </table>
     </div>
-    <div class="create-popup">
-      <create-class />
+    <div class="create-popup" :class="{ active: isCreate }">
+      <create-class @close="isCreate = false" @save="saveCreate" />
+    </div>
+    <div class="create-popup" :class="{ active: isEdit }">
+      <edit-class @close="isEdit = false" :item="item" @save="saveEdit"/>
+    </div>
+    <div class="create-popup" :class="{ active: isView }">
+      <view-class @close="isView = false" :item="item"/>
+    </div>
+    <div class="create-popup" :class="{ active: isDelete }">
+      <delete-class @close="isDelete = false" @delete="deleteItem"/>
     </div>
   </div>
 </template>
 
 <script>
 import CreateClass from "@/components/CreateClass.vue";
+import EditClass from "@/components/EditClass.vue";
+import ViewClass from "@/components/ViewClass.vue";
+import DeleteClass from "@/components/DeleteClass.vue";
 
 export default {
   name: "Dashboard",
-  components: { CreateClass },
+  components: { CreateClass, EditClass, ViewClass, DeleteClass },
   data() {
     return {
+      item: {},
+      filter: '',
+      isCreate: false,
+      isEdit: false,
+      isDelete: false,
+      isView: false,
       items: [
         {
           id: 1,
@@ -90,204 +136,45 @@ export default {
       ],
     };
   },
+  methods: {
+    saveCreate(item) {
+      this.items.push(item);
+      this.isCreate = false;
+    },
+    saveEdit(itemEdit) {
+      this.items = this.items.map((item) => {
+        if (item.id === itemEdit.id) {
+          return itemEdit
+        }
+        return item;
+      });
+      this.isEdit = false;
+    },
+    handleEdit(item) {
+      this.isEdit = true;
+      this.isView = false;
+      this.isCreate = false;
+      this.isDelete = false;
+      this.item = item;
+    },
+    handleView(item){
+      this.isEdit = false;
+      this.isView = true;
+      this.isCreate = false;
+      this.isDelete = false;
+      this.item = item;
+    },
+    handleDelete(item){
+      this.isEdit = false;
+      this.isView = false;
+      this.isCreate = false;
+      this.isDelete = true;
+      this.item = item;
+    },
+    deleteItem() {
+      this.items = this.items.filter((item) => item.id!== this.item.id);
+      this.isDelete = false;
+    }
+  },
 };
 </script>
-
-<style scoped>
-.container {
-  font-family: Arial, sans-serif;
-  max-width: 1300px;
-  margin: 0 auto;
-  padding: 20px;
-}
-
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.title {
-  font-size: 24px;
-}
-
-.create-button {
-  background-color: #4caf50;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 5px;
-  cursor: pointer;
-}
-
-.form-container {
-  overflow-x: auto;
-}
-
-.form-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.form-table th,
-.form-table td {
-  border: 1px solid #ddd;
-  padding: 8px;
-  text-align: left;
-}
-
-.form-table th {
-  background-color: #f2f2f2;
-}
-
-.action-button {
-  background-color: #007bff;
-  color: white;
-  border: none;
-  padding: 8px 12px;
-  border-radius: 4px;
-  cursor: pointer;
-  margin-right: 5px;
-}
-
-.view-button {
-  background-color: #17a2b8;
-}
-
-.edit-button {
-  background-color: #ffc107;
-}
-
-.delete-button {
-  background-color: #dc3545;
-}
-.create-popup {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background-color: white;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  padding: 20px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-  z-index: 999;
-  display: none;
-}
-
-.create-popup.active {
-  display: block;
-}
-.toggle {
-  position: relative;
-  display: inline-block;
-  width: 40px;
-  height: 20px;
-}
-
-.toggle input[type="checkbox"] {
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.slider {
-  position: absolute;
-  cursor: pointer;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: #ccc;
-  -webkit-transition: 0.4s;
-  transition: 0.4s;
-  border-radius: 34px;
-}
-.slider:before {
-  position: absolute;
-  content: "";
-  height: 16px;
-  width: 16px;
-  left: 2px;
-  bottom: 2px;
-  background-color: white;
-  -webkit-transition: 0.4s;
-  transition: 0.4s;
-  border-radius: 50%;
-}
-
-input[type="checkbox"]:checked + .slider {
-  background-color: #4caf50;
-}
-
-input[type="checkbox"]:focus + .slider {
-  box-shadow: 0 0 1px #4caf50;
-}
-
-input[type="checkbox"]:checked + .slider:before {
-  -webkit-transform: translateX(20px);
-  -ms-transform: translateX(20px);
-  transform: translateX(20px);
-}
-.form-table th {
-  text-align: center;
-}
-
-.form-table td {
-  text-align: left;
-}
-.form-table td:nth-child(1) {
-  text-align: center;
-}
-.form-table td:nth-child(3) {
-  text-align: center;
-}
-.form-table td:nth-child(4) {
-  text-align: center;
-}
-.form-table td:nth-child(5) {
-  text-align: center;
-}
-.form-table td:nth-child(6) {
-  max-width: 300px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.form-table td:nth-child(7) {
-  text-align: center;
-}
-.form-table td:nth-child(8) {
-  text-align: center;
-}
-.filter-btn {
-  margin-left: 5px;
-}
-.search-group {
-  display: flex;
-  align-items: center;
-}
-
-.search-input {
-  flex: 1;
-  padding: 8px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  margin-right: 10px;
-}
-
-.filter-btn {
-  background-color: #007bff;
-  color: white;
-  border: none;
-  padding: 8px 12px;
-  border-radius: 5px;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-}
-
-.filter-btn:hover {
-  background-color: #0056b3;
-}
-</style>
